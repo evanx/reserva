@@ -1,14 +1,17 @@
 # reserva
 
-Redis-based web gateway.
+Redis-based web gateway/proxy.
 
 <img src='https://raw.githubusercontent.com/evanx/reserva/master/docs/readme/images/main.png'>
 
-HTTP request URLs are SHA'ed and response content found in Redis is returned.
+- HTTP request URLs are SHA'ed i.e. `ctx.headers.host + ctx.url`
+- if cached content is found in Redis is returned e.g. `reserva:${sha}:t`
+- else the request SHA is pushed to a queue `reserva:req:q`
+- we await a response via `reserva:${sha}:res:q` with `config.resTimeout`
+- if `brpop` times out, we return `504` i.e. "Gateway timeout"
+- another service can reactively generate content and push to this Redis list
 
-If the Redis key for the SHA is not found, the request is pushed to a list to enable another service to reactively generate content into Redis.
-
-Additionally a set of locations can be specified, where if the request URL starts with that (truncated) location, then that is used for the SHA.
+Additionally a set of locations can be specified, where if the request URL starts with that (truncated) location, then that is used for the SHA, e.g. to serve static or cached content from Redis.
 
 ## Configuration
 
