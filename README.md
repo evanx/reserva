@@ -2,7 +2,7 @@
 
 Redis-based web gateway/proxy.
 
-<img src='https://raw.githubusercontent.com/evanx/reserva/master/docs/readme/images/main.png'>
+<img src='https://raw.githubusercontent.com/evanx/reserva/master/docs/readme/images/main2.png'>
 
 - HTTP request URLs are SHA'ed i.e. `ctx.headers.host + ctx.url`
 - if cached content is found in Redis is returned e.g. `reserva:${sha}:t`
