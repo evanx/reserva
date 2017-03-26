@@ -68,8 +68,8 @@ reqQ: {
 reqC: {
     key: `${config.redisNamespace}:req:c`
 },
-locationS: {
-    key: `${config.redisNamespace}:location:s`
+locationH: {
+    key: `${config.redisNamespace}:location:h`
 },
 reqH: {
     key: sha => `${config.redisNamespace}:${sha}:h`
