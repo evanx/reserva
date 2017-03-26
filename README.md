@@ -13,6 +13,17 @@ Redis-based web gateway/proxy.
 
 Additionally a set of locations can be specified, where if the request URL starts with that (truncated) location, then that is used for the SHA, e.g. to serve static or cached content from Redis.
 
+
+## Test
+
+```
+git clone git@github.com:evanx/reserva.git
+cd reserva
+npm install
+npm run test
+```
+
+
 ## Configuration
 
 See `lib/spec.js` https://github.com/evanx/reserva/blob/master/lib/spec.js
@@ -31,19 +42,14 @@ redisNamespace: {
     default: 'reserva'
 },
 reqExpire: {
-    description: 'the TTL expiry for HTTP request',
+    description: 'the TTL expiry for HTTP requests',
     unit: 's',
     default: 4
 },
 resExpire: {
-    description: 'the TTL expiry for HTTP response',
+    description: 'the TTL expiry for HTTP responses',
     unit: 's',
-    default: 4
-},
-errorExpire: {
-    description: 'the TTL expiry for error details',
-    unit: 's',
-    default: 366611
+    default: 15
 },
 httpPort: {
     description: 'the HTTP port',
@@ -85,6 +91,7 @@ hostA: {
 }
 ```
 
+
 ## Docker
 
 See `Dockerfile` https://github.com/evanx/reserva/blob/master/Dockerfile
@@ -117,8 +124,41 @@ Since the containerized app has access to the host's Redis instance, you should 
 
 See `lib/main.js` https://github.com/evanx/reserva/blob/master/lib/main.js
 ```javascript
-
+api.get('/*', async ctx => {
+    const {host} = ctx.headers;
+    const url = host + ctx.url.replace(/\/$/, '');
+    const location = locations.find(location => url.startsWith(location)) || url;
+    const sha = sha1hex(location);
+    const [
+        cachedContent,
+        cachedTtl,
+        cachedContentType
+    ] = await multiExecAsync(client, multi => {
+        multi.get(redisK.contentT(sha));
+        multi.ttl(redisK.contentT(sha));
+        multi.hget(redisK.reqH(sha), 'contentType');
+        multi.hincrby(redisK.serviceA, 'req', 1);
+        multi.hincrby(redisK.hostA, host, 1);
+    });
+    ...
+});
 ```
+When no cached content is found, we push
+```javascript
+await multiExecAsync(client, multi => {
+    multi.hmset(redisK.reqH(sha), {url});
+    multi.expire(redisK.reqH(sha), config.reqExpire);
+    multi.lpush(redisK.reqQ, sha);
+});
+```
+We await for a response to be pushed onto a list:
+```javascript
+const popRes = await client.brpopAsync(redisK.resQ(sha), config.reqExpire);
+```
+where actually this is not a queue per se, but we wish to await the blocking pop.
+
+
+### Archetype
 
 See `lib/index.js` is application archetype: https://github.com/evanx/redis-koa-app
 ```

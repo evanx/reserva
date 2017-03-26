@@ -1,11 +1,8 @@
+#!/bin/sh
 
 set -u -e
 
 alias curl="curl -s -w '\n'"
-
-c0localhost() {
-    sha=334389048b872a533002b34d73f8c29fd09efc50
-}
 
   url=localhost:8032/test
   sha=64fa9b2636719ef1a737811af2a2b7ef1fe91d17
@@ -27,3 +24,4 @@ c0localhost() {
     curl localhost:8032/shutdown
   ) & npm start
   echo OK
+
