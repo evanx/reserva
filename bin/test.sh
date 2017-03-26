@@ -1,15 +1,10 @@
 
-set -u -e
+set -u -e -x
 
-  pattern=reserva:* command=del rescan
+  url=http://localhost:8032/test
+  sha_localhost=334389048b872a533002b34d73f8c29fd09efc50
+  sha=64fa9b2636719ef1a737811af2a2b7ef1fe91d17
+  echo $sha
+  echo -n $url | sha1sum
+  redis-cli del reserva:location:s
   redis-cli del reserva:req:q
-  redis-cli del reserva:busy:q
-  redis-cli del reserva:1:req:h
-  redis-cli hset reserva:1:req:h text 'another test message'
-  redis-cli lpush reserva:req:q 1
-  redis-cli lpush reserva:req:q exit
-  #slackUrl=http://localhost:8031 npm start
-  slackUrl=$SLACK_URL slackUsername=SqueakyMonkeyBot npm start
-  scanCount=1000 format=terse pattern=reserva:* format=key rescan
-  scanCount=1000 format=terse pattern=reserva:*:q command=llen rescan
-  scanCount=1000 format=terse pattern=reserva:*:h command=hgetall rescan

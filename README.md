@@ -4,52 +4,82 @@ Redis-based web gateway.
 
 <img src='https://raw.githubusercontent.com/evanx/reserva/master/docs/readme/images/main.png'>
 
+HTTP request URLs are SHA'ed and response content found in Redis is returned.
 
-## Use case
+If the Redis key for the SHA is not found, the request is pushed to a list to enable another service to reactively generate content into Redis.
 
+Additionally a set of locations can be specified, where if the request URL starts with that (truncated) location, then that is used for the SHA.
 
 ## Configuration
 
 See `lib/spec.js` https://github.com/evanx/reserva/blob/master/lib/spec.js
 
 ```javascript
-    env: {
-        redisHost: {
-            description: 'the Redis host',
-            default: 'localhost'
-        },
-        redisPort: {
-            description: 'the Redis port',
-            default: 6379
-        },
-        redisNamespace: {
-            description: 'the Redis namespace',
-            default: 'reserva'
-        }
-    }
+redisHost: {
+    description: 'the Redis host',
+    default: 'localhost'
+},
+redisPort: {
+    description: 'the Redis port',
+    default: 6379
+},
+redisNamespace: {
+    description: 'the Redis namespace',
+    default: 'reserva'
+},
+reqExpire: {
+    description: 'the TTL expiry for HTTP request',
+    unit: 's',
+    default: 4
+},
+resExpire: {
+    description: 'the TTL expiry for HTTP response',
+    unit: 's',
+    default: 4
+},
+errorExpire: {
+    description: 'the TTL expiry for error details',
+    unit: 's',
+    default: 366611
+},
+httpPort: {
+    description: 'the HTTP port',
+    default: 8032
+},
+httpLocation: {
+    description: 'the HTTP location',
+    default: ''
+},
 ```
 Our `spec` also exposes the Redis keys used by this service:
 ```javascript    
-    redisK: config => ({
-        reqS: {
-            key: `${config.redisNamespace}:req:s`
-        },
-        reqQ: {
-            key: `${config.redisNamespace}:req:q`
-        },
-        reqH: {
-            key: sha => `${config.redisNamespace}:${sha}:req:h`
-        },
-        busyQ: {
-            key: `${config.redisNamespace}:busy:q`
-        },
-        reqC: {
-            key: `${config.redisNamespace}:req:count:h`
-        },
-        errorC: {
-            key: `${config.redisNamespace}:error:count:h`
-        }
-    })
+reqQ: {
+    key: `${config.redisNamespace}:req:q`
+},
+reqC: {
+    key: `${config.redisNamespace}:req:c`
+},
+locationS: {
+    key: `${config.redisNamespace}:location:s`
+},
+reqH: {
+    key: sha => `${config.redisNamespace}:${sha}:h`
+},
+resQ: {
+    key: sha => `${config.redisNamespace}:${sha}:res:q`
+},
+content: {
+    key: sha => `${config.redisNamespace}:${sha}:t`
+},
+serviceA: {
+    key: `${config.redisNamespace}:a`
+},
+errorA: {
+    key: `${config.redisNamespace}:error:a`
+},
+hostA: {
+    key: `${config.redisNamespace}:host:a`
+}
 ```
 
 ## Docker
@@ -84,9 +114,18 @@ Since the containerized app has access to the host's Redis instance, you should 
 
 See `lib/main.js` https://github.com/evanx/reserva/blob/master/lib/main.js
 ```javascript
+
 ```
 
-Uses application archetype: https://github.com/evanx/redis-koa-app
+See `lib/index.js` is application archetype: https://github.com/evanx/redis-koa-app
+```
+require('redis-koa-app')(
+    require('../package.json'),
+    require('./spec.js'),
+    async deps => Object.assign(global, deps),    
+    () => require('./main.js')
+);
+```
 
 <hr>
 
