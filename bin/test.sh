@@ -24,4 +24,3 @@ alias curl="curl -s -w '\n'"
     curl localhost:8032/shutdown
   ) & npm start
   echo OK
-
